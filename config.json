@@ -1,0 +1,224 @@
+{
+  "system_info": {
+    "name": "Daniel Gillaspy Production Job Search System",
+    "version": "1.0.0",
+    "description": "Enterprise-grade job search automation with real API integrations",
+    "created": "2025-01-04",
+    "last_updated": "2025-01-04"
+  },
+  
+  "candidate_profile": {
+    "name": "Daniel Gillaspy",
+    "email": "dgillaspy@me.com",
+    "phone": "405-315-1310",
+    "location": "Oklahoma City, OK",
+    "github": "github.com/heyfinal",
+    "linkedin": "linkedin.com/in/daniel-gillaspy-995bb91b6",
+    "years_experience": 20,
+    "industries": ["Oil & Gas", "Energy", "Operations", "Safety", "Technology"],
+    "salary_range": {
+      "min": 65000,
+      "max": 150000,
+      "currency": "USD"
+    },
+    "work_preferences": {
+      "remote": "hybrid",
+      "travel_percentage": 10,
+      "physical_limitations": true,
+      "clearance": false
+    }
+  },
+  
+  "search_configuration": {
+    "schedule": {
+      "daily_time": "06:00",
+      "timezone": "America/Chicago",
+      "retry_attempts": 3,
+      "retry_delay_minutes": 30
+    },
+    
+    "search_queries": [
+      {
+        "keywords": "Landman oil gas lease analyst 15-25 years experience",
+        "location": "Oklahoma City, OK",
+        "priority": 1,
+        "remote": false,
+        "realistic_focus": "Perfect experience match - not overqualified"
+      },
+      {
+        "keywords": "Senior Safety Coordinator HSE oil gas field experience",
+        "location": "Oklahoma City, OK",
+        "priority": 1,
+        "remote": false,
+        "realistic_focus": "Leverages 20 years field safety experience"
+      },
+      {
+        "keywords": "Operations Data Analyst energy drilling experience",
+        "location": "Oklahoma City, OK", 
+        "priority": 1,
+        "remote": true,
+        "realistic_focus": "Combines operations background with analytical transition"
+      },
+      {
+        "keywords": "Contract Analyst oil gas lease operations background",
+        "location": "Oklahoma City, OK",
+        "priority": 2,
+        "remote": false,
+        "realistic_focus": "Natural fit for field operations + analytical work"
+      },
+      {
+        "keywords": "Technical Operations Specialist energy automation",
+        "location": "Oklahoma City, OK",
+        "priority": 2,
+        "remote": true,
+        "realistic_focus": "Bridge between operations and technical roles"
+      }
+    ],
+    
+    "job_sources": {
+      "jsearch_api": {
+        "enabled": true,
+        "priority": 1,
+        "requires_key": true,
+        "rate_limit": 100
+      },
+      "indeed_rss": {
+        "enabled": true,
+        "priority": 2,
+        "requires_key": false,
+        "rate_limit": 50
+      },
+      "usajobs_api": {
+        "enabled": true,
+        "priority": 2,
+        "requires_key": false,
+        "rate_limit": 25
+      },
+      "rigzone_scraping": {
+        "enabled": true,
+        "priority": 1,
+        "requires_key": false,
+        "rate_limit": 20
+      },
+      "energy_jobs_network": {
+        "enabled": true,
+        "priority": 3,
+        "requires_key": false,
+        "rate_limit": 15
+      },
+      "company_careers": {
+        "enabled": true,
+        "priority": 2,
+        "requires_key": false,
+        "rate_limit": 10
+      }
+    }
+  },
+  
+  "api_keys": {
+    "rapidapi_key": "YOUR_RAPIDAPI_KEY_HERE",
+    "serpapi_key": null,
+    "smtp_password": "YOUR_ICLOUD_APP_PASSWORD_HERE",
+    "slack_webhook": null
+  },
+  
+  "notification_settings": {
+    "email": {
+      "enabled": true,
+      "address": "dgillaspy@me.com",
+      "smtp_server": "smtp.icloud.com",
+      "smtp_port": 587,
+      "daily_summary": true,
+      "high_match_alerts": true,
+      "minimum_score_alert": 0.8
+    },
+    "slack": {
+      "enabled": true,
+      "daily_summary": true,
+      "high_match_alerts": true,
+      "system_alerts": true
+    },
+    "web_dashboard": {
+      "enabled": true,
+      "host": "127.0.0.1",
+      "port": 8000,
+      "auto_open": false
+    }
+  },
+  
+  "performance_limits": {
+    "max_jobs_per_search": 10,
+    "max_total_daily_jobs": 25,
+    "max_execution_time_minutes": 20,
+    "api_rate_limit_delay": 2.0,
+    "concurrent_requests": 2,
+    "selenium_timeout": 15,
+    "request_timeout": 10,
+    "focus_quality_over_quantity": true
+  },
+  
+  "matching_algorithm": {
+    "weights": {
+      "industry_experience": 0.30,
+      "realistic_obtainability": 0.25,
+      "technical_skills": 0.20,
+      "role_transition": 0.15,
+      "location_fit": 0.05,
+      "salary_fit": 0.05
+    },
+    "minimum_match_score": 0.6,
+    "high_match_threshold": 0.85,
+    "realistic_filters": {
+      "max_experience_required": 25,
+      "avoid_overqualification": true,
+      "prefer_energy_sector": true,
+      "focus_transition_friendly": true
+    },
+    "bonuses": {
+      "oil_gas_tech_combo": 0.20,
+      "realistic_experience_match": 0.15,
+      "local_company": 0.10,
+      "career_transition_friendly": 0.10
+    },
+    "penalties": {
+      "overqualification": -0.30,
+      "unrealistic_requirements": -0.25,
+      "physical_demands": -0.20,
+      "entry_level_mismatch": -0.15
+    }
+  },
+  
+  "database_settings": {
+    "path": "/Users/daniel/databases/productivity.db",
+    "backup_enabled": true,
+    "backup_frequency_days": 7,
+    "archive_old_jobs_days": 90,
+    "cleanup_logs_days": 30,
+    "vacuum_frequency_days": 7
+  },
+  
+  "logging": {
+    "level": "INFO",
+    "file": "/Users/daniel/workapps/production_job_system/job_search.log",
+    "max_file_size_mb": 10,
+    "backup_count": 5,
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  },
+  
+  "web_scraping": {
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+    "headless": true,
+    "respect_robots_txt": true,
+    "delay_between_requests": 2.0,
+    "max_retries": 3,
+    "timeout": 15
+  },
+  
+  "system_monitoring": {
+    "health_check_interval_minutes": 60,
+    "disk_space_alert_gb": 1,
+    "memory_alert_mb": 500,
+    "log_system_events": true,
+    "performance_tracking": true
+  }
+}
