@@ -496,6 +496,34 @@ class IntelligentJobMatcher:
             final_score -= 0.15
             adjustments.append("PENALTY: Role significantly below experience level")
         
+        # MAJOR overqualification penalty for executive/senior roles beyond reach
+        job_title_lower = job.get('title', '').lower()
+        job_text_lower = self._get_job_text(job).lower()
+        
+        # Positions that would be overqualification for someone transitioning from field work
+        overqualified_keywords = [
+            'vice president', 'vp ', 'executive director', 'chief', 'ceo', 'cfo', 'cto',
+            'senior director', 'managing director', 'general manager', 'division manager',
+            'regional manager', 'senior business analyst', 'principal analyst',
+            'senior consultant', 'principal consultant', 'senior manager'
+        ]
+        
+        if any(kw in job_title_lower for kw in overqualified_keywords):
+            final_score -= 0.40  # Heavy penalty
+            adjustments.append("MAJOR PENALTY: Executive/senior role - overqualification for field-to-tech transition")
+        
+        # High salary roles that typically require MBA/advanced degrees
+        if job.get('salary_max', 0) > 200000:
+            # Check if it's a realistic high-paying technical role vs executive role
+            if not any(tech_kw in job_text_lower for tech_kw in ['python', 'automation', 'technical', 'data', 'programming']):
+                final_score -= 0.35  # Heavy penalty for high-salary non-technical roles
+                adjustments.append("MAJOR PENALTY: High-salary executive role inappropriate for experience level")
+        
+        # MBA/advanced degree requirement penalty (Daniel doesn't have MBA)
+        if any(kw in job_text_lower for kw in ['mba required', 'masters required', 'phd required', 'advanced degree required']):
+            final_score -= 0.25
+            adjustments.append("PENALTY: Advanced degree requirement not met")
+        
         # Security clearance requirement penalty (hard to get)
         if any(kw in self._get_job_text(job).lower() for kw in ['clearance', 'security clearance', 'classified']):
             final_score -= 0.10

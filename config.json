@@ -39,39 +39,39 @@
     
     "search_queries": [
       {
-        "keywords": "Landman oil gas lease analyst 15-25 years experience",
+        "keywords": "Landman oil gas lease analyst mid-level experience Oklahoma",
         "location": "Oklahoma City, OK",
         "priority": 1,
         "remote": false,
-        "realistic_focus": "Perfect experience match - not overqualified"
+        "realistic_focus": "Realistic transition from field operations to landman role"
       },
       {
-        "keywords": "Senior Safety Coordinator HSE oil gas field experience",
+        "keywords": "Safety Coordinator HSE oil gas compliance entry mid-level",
         "location": "Oklahoma City, OK",
         "priority": 1,
         "remote": false,
-        "realistic_focus": "Leverages 20 years field safety experience"
+        "realistic_focus": "Uses field safety experience without overqualification"
       },
       {
-        "keywords": "Operations Data Analyst energy drilling experience",
+        "keywords": "Operations Analyst data entry mid-level energy drilling",
         "location": "Oklahoma City, OK", 
         "priority": 1,
         "remote": true,
-        "realistic_focus": "Combines operations background with analytical transition"
+        "realistic_focus": "Entry-level analyst role leveraging operations knowledge"
       },
       {
-        "keywords": "Contract Analyst oil gas lease operations background",
+        "keywords": "Contract Specialist lease review oil gas entry level",
         "location": "Oklahoma City, OK",
         "priority": 2,
         "remote": false,
-        "realistic_focus": "Natural fit for field operations + analytical work"
+        "realistic_focus": "Entry-level contract work with field operations background"
       },
       {
-        "keywords": "Technical Operations Specialist energy automation",
+        "keywords": "Technical Specialist automation python scripting entry",
         "location": "Oklahoma City, OK",
         "priority": 2,
         "remote": true,
-        "realistic_focus": "Bridge between operations and technical roles"
+        "realistic_focus": "Entry-level tech role highlighting automation skills"
       }
     ],
     
@@ -159,14 +159,14 @@
   
   "matching_algorithm": {
     "weights": {
-      "industry_experience": 0.30,
-      "realistic_obtainability": 0.25,
+      "realistic_obtainability": 0.35,
+      "industry_experience": 0.25,
       "technical_skills": 0.20,
       "role_transition": 0.15,
-      "location_fit": 0.05,
-      "salary_fit": 0.05
+      "location_fit": 0.03,
+      "salary_fit": 0.02
     },
-    "minimum_match_score": 0.6,
+    "minimum_match_score": 0.5,
     "high_match_threshold": 0.85,
     "realistic_filters": {
       "max_experience_required": 25,
@@ -181,8 +181,11 @@
       "career_transition_friendly": 0.10
     },
     "penalties": {
-      "overqualification": -0.30,
-      "unrealistic_requirements": -0.25,
+      "executive_overqualification": -0.40,
+      "overqualification": -0.35,
+      "unrealistic_requirements": -0.30,
+      "high_salary_non_technical": -0.35,
+      "advanced_degree_required": -0.25,
       "physical_demands": -0.20,
       "entry_level_mismatch": -0.15
     }
