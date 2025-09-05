@@ -13,6 +13,13 @@ from pathlib import Path
 from typing import Dict, List, Any
 from production_job_system_v2 import SecureJobDiscovery, JobListing
 
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    logging.warning("OpenAI package not available - install with: pip install openai")
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,18 +33,37 @@ class MCPEnhancedJobSystem(SecureJobDiscovery):
         self.mcp_tools = self._discover_mcp_tools()
         
     def _check_openai_mcp(self) -> bool:
-        """Check if OpenAI MCP server is available"""
+        """Check if OpenAI integration is available"""
         try:
-            # Check if OpenAI API key is configured
+            # First check if OpenAI package is installed
+            if not OPENAI_AVAILABLE:
+                logger.warning("⚠️ OpenAI package not installed - run: pip install openai")
+                return False
+            
+            # Check environment variable first
             openai_key = os.getenv('OPENAI_API_KEY')
-            if openai_key:
-                logger.info("✅ OpenAI MCP integration available")
+            
+            # If not in environment, load from secure config file
+            if not openai_key:
+                api_keys_file = Path.home() / '.config' / 'jobsearch' / 'api_keys.json'
+                if api_keys_file.exists():
+                    with open(api_keys_file, 'r') as f:
+                        api_keys = json.load(f)
+                        openai_key = api_keys.get('openai_api_key')
+                        
+                        if openai_key:
+                            # Set environment variable for this session
+                            os.environ['OPENAI_API_KEY'] = openai_key
+                            logger.info("🔑 OpenAI API key loaded from secure config")
+            
+            if openai_key and openai_key.startswith('sk-'):
+                logger.info("✅ OpenAI GPT-4 integration ready")
                 return True
             else:
-                logger.warning("⚠️ OPENAI_API_KEY not set - GPT assistance disabled")
+                logger.warning("⚠️ Valid OpenAI API key not found - GPT assistance disabled")
                 return False
         except Exception as e:
-            logger.error(f"OpenAI MCP check failed: {e}")
+            logger.error(f"OpenAI integration check failed: {e}")
             return False
     
     def _discover_mcp_tools(self) -> Dict[str, bool]:
@@ -110,12 +136,14 @@ Return JSON format:
 }}
 """
 
-            # This would call GPT-4/5 via MCP OpenAI server
-            # For now, simulate the analysis
-            logger.info("🤖 Running GPT-4/5 enhanced job analysis...")
+            # Call OpenAI GPT-4 for real analysis
+            logger.info("🤖 Running GPT-4 enhanced job analysis...")
             
-            # Simulate GPT analysis (in production, this would call the OpenAI MCP server)
-            enhanced_jobs = self._simulate_gpt_analysis(jobs)
+            if OPENAI_AVAILABLE:
+                enhanced_jobs = await self._real_gpt_analysis(analysis_prompt, jobs)
+            else:
+                logger.warning("OpenAI package not available, using standard matching")
+                enhanced_jobs = jobs
             
             logger.info("✅ GPT job analysis complete")
             return enhanced_jobs
@@ -124,50 +152,70 @@ Return JSON format:
             logger.error(f"GPT analysis failed: {e}")
             return jobs
     
-    def _simulate_gpt_analysis(self, jobs: List[JobListing]) -> List[JobListing]:
-        """Simulate GPT analysis with intelligent scoring improvements"""
-        for job in jobs:
-            original_score = job.match_score
+    async def _real_gpt_analysis(self, analysis_prompt: str, jobs: List[JobListing]) -> List[JobListing]:
+        """Use real OpenAI GPT-4 API for job analysis"""
+        try:
+            client = openai.AsyncOpenAI()
             
-            # Simulate GPT improving scores based on deeper analysis
-            title_lower = job.title.lower()
-            desc_lower = job.description.lower()
+            response = await client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are an expert career advisor specializing in oil & gas industry transitions to technical roles. Provide detailed, practical analysis."},
+                    {"role": "user", "content": analysis_prompt}
+                ],
+                max_tokens=2000,
+                temperature=0.3
+            )
             
-            # GPT would identify these patterns better than simple keyword matching
-            gpt_bonuses = 0
+            # Parse GPT response
+            gpt_response = response.choices[0].message.content
+            logger.info(f"GPT-4 response received: {len(gpt_response)} characters")
             
-            # Leadership roles that match his experience
-            if any(word in title_lower for word in ['manager', 'supervisor', 'coordinator', 'lead']):
-                if 'director' not in title_lower:  # Avoid overqualification
-                    gpt_bonuses += 0.05
+            try:
+                # Parse JSON response
+                analysis_data = json.loads(gpt_response)
+                
+                # Apply GPT insights to job scores
+                job_dict = {job.id: job for job in jobs}
+                
+                for job_id, analysis in analysis_data.get('analysis', {}).items():
+                    if job_id in job_dict:
+                        job = job_dict[job_id]
+                        
+                        # Update job score with GPT analysis
+                        job.match_score = float(analysis.get('revised_score', job.match_score))
+                        
+                        # Add GPT reasoning to job metadata
+                        if hasattr(job, 'gpt_analysis'):
+                            job.gpt_analysis = analysis
+                        else:
+                            # Store GPT insights in description for display
+                            gpt_insights = f"\n\n🤖 AI Analysis:\n"
+                            gpt_insights += f"Priority: {analysis.get('priority', 'medium').title()}\n"
+                            gpt_insights += f"Reasoning: {analysis.get('reasoning', 'N/A')}\n"
+                            
+                            if analysis.get('advantages'):
+                                gpt_insights += f"Advantages: {', '.join(analysis['advantages'])}\n"
+                            
+                            if analysis.get('red_flags'):
+                                gpt_insights += f"Red Flags: {', '.join(analysis['red_flags'])}\n"
+                            
+                            job.description += gpt_insights
+                
+                logger.info("✅ GPT analysis applied to jobs")
+                
+            except json.JSONDecodeError as e:
+                logger.warning(f"GPT response not valid JSON, using as text insight: {e}")
+                # Fallback: add GPT response as insight to top job
+                if jobs:
+                    jobs[0].description += f"\n\n🤖 AI Insight:\n{gpt_response[:500]}..."
             
-            # Perfect skill combinations (oil & gas + data/tech)
-            if ('oil' in desc_lower or 'gas' in desc_lower or 'energy' in desc_lower):
-                if any(tech in desc_lower for tech in ['data', 'analysis', 'automation', 'digital']):
-                    gpt_bonuses += 0.10  # Perfect combination
+            return jobs
             
-            # Remote work suitability analysis
-            if job.remote and not any(word in desc_lower for word in ['field', 'travel', 'physical']):
-                gpt_bonuses += 0.05
-            
-            # Company reputation and stability (GPT would know this)
-            reputable_companies = ['google', 'microsoft', 'amazon', 'apple', 'meta', 'pwc', 'deloitte']
-            if any(company in job.company.lower() for company in reputable_companies):
-                gpt_bonuses += 0.05
-            
-            # Apply GPT improvements
-            job.match_score = min(original_score + gpt_bonuses, 0.98)
-            
-            # GPT would also improve obtainability assessment
-            if job.salary_max >= 100000 and job.remote:
-                job.obtainability = 'High'
-            elif job.salary_max >= 80000 and ('oklahoma' in job.location.lower() or job.remote):
-                if job.obtainability == 'Medium':
-                    job.obtainability = 'High'
-        
-        # Sort by GPT-improved scores
-        jobs.sort(key=lambda j: j.match_score, reverse=True)
-        return jobs
+        except Exception as e:
+            logger.error(f"Real GPT analysis failed: {e}")
+            return jobs
+    
     
     async def mcp_enhanced_job_discovery(self) -> List[JobListing]:
         """Use MCP tools to enhance job discovery"""

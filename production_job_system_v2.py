@@ -760,12 +760,19 @@ class SecureJobDiscovery:
             loading.classList.add('show');
             
             try {{
-                // In a full implementation, this would call the Python backend
-                // For now, simulate the search and reload
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                // Call the MCP-enhanced job system for fresh results
+                const response = await fetch('/api/refresh-jobs', {{
+                    method: 'POST',
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{'use_gpt': true}})
+                }});
                 
-                // Reload page to get fresh results
-                window.location.reload();
+                if (response.ok) {{
+                    // Reload page to show fresh results
+                    window.location.reload();
+                }} else {{
+                    throw new Error('Failed to refresh jobs');
+                }}
                 
             }} catch (error) {{
                 console.error('Refresh failed:', error);
