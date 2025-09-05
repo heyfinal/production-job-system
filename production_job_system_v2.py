@@ -240,13 +240,10 @@ class SecureJobDiscovery:
         """Calculate realistic match score"""
         score = 0.70  # Base score
         
-        job_title = job_data.get('job_title', '') or ''
-        job_desc = job_data.get('job_description', '') or ''
-        job_state = job_data.get('job_state', '') or ''
-        
-        job_title = job_title.lower()
-        job_desc = job_desc.lower()
-        job_state = job_state.lower()
+        # Safely handle None values with proper defaults
+        job_title = str(job_data.get('job_title', '') or '').lower()
+        job_desc = str(job_data.get('job_description', '') or '').lower()
+        job_state = str(job_data.get('job_state', '') or '').lower()
         
         # Experience level matching (+10%)
         if any(level in job_title for level in ['senior', 'manager', 'specialist', 'coordinator']):
@@ -283,9 +280,10 @@ class SecureJobDiscovery:
         """Assess how obtainable this job is"""
         factors = 0
         
-        job_title = job_data.get('job_title', '').lower() or ''
-        job_desc = job_data.get('job_description', '').lower() or ''
-        job_state = job_data.get('job_state', '').lower() or ''
+        # Safely handle None values with proper defaults
+        job_title = str(job_data.get('job_title', '') or '').lower()
+        job_desc = str(job_data.get('job_description', '') or '').lower()
+        job_state = str(job_data.get('job_state', '') or '').lower()
         salary_max = job_data.get('job_max_salary', 0) or 0
         
         # Positive factors

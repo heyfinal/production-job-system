@@ -10,8 +10,9 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from production_job_system_v2 import SecureJobDiscovery, JobListing
+from intelligent_matcher import IntelligentJobMatcher, CandidateProfile
 
 try:
     import openai
@@ -29,8 +30,131 @@ class MCPEnhancedJobSystem(SecureJobDiscovery):
     
     def __init__(self):
         super().__init__()
+        
+        # Initialize intelligent matcher with configured penalties
+        self.candidate_profile = CandidateProfile()
+        self.intelligent_matcher = IntelligentJobMatcher(self.candidate_profile)
+        
+        # Load configuration with penalties
+        self.config = self._load_config()
+        
         self.openai_available = self._check_openai_mcp()
         self.mcp_tools = self._discover_mcp_tools()
+        
+        logger.info("✅ MCP Enhanced System initialized with IntelligentJobMatcher")
+    
+    def _load_config(self) -> Dict:
+        """Load configuration including penalty settings"""
+        try:
+            config_path = Path(__file__).parent / 'config.json'
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                logger.info("✅ Loaded config with penalty settings")
+                return config
+        except Exception as e:
+            logger.error(f"Failed to load config: {e}")
+            return {}
+    
+    def _process_job_data(self, job_data: Dict, query: str, location: str) -> Optional[JobListing]:
+        """Process raw job data with intelligent matching and penalties"""
+        try:
+            # Convert to JobListing first (with null safety)
+            job = JobListing(
+                id="",
+                title=str(job_data.get('job_title', 'Unknown Title') or 'Unknown Title')[:100],
+                company=str(job_data.get('employer_name', 'Unknown Company') or 'Unknown Company')[:100],
+                location=f"{job_data.get('job_city', '') or ''}, {job_data.get('job_state', '') or ''}".strip(', '),
+                url=job_data.get('job_apply_link', job_data.get('job_google_link', '#')) or '#',
+                salary_min=job_data.get('job_min_salary', 0) or 0,
+                salary_max=job_data.get('job_max_salary', 0) or 0,
+                remote=job_data.get('job_is_remote', False) or False,
+                employment_type=job_data.get('job_employment_type', 'FULLTIME') or 'FULLTIME',
+                description=str(job_data.get('job_description', '') or '')[:500],
+                posted_date=job_data.get('job_posted_at_datetime_utc', '') or '',
+                source="JSearch API"
+            )
+            
+            # Use intelligent matcher for scoring with penalties
+            job_dict = {
+                'title': job.title,
+                'company': job.company,
+                'location': job.location,
+                'description': job.description,
+                'salary_min': job.salary_min,
+                'salary_max': job.salary_max,
+                'remote_friendly': job.remote,
+                'employment_type': job.employment_type,
+                'url': job.url
+            }
+            
+            # Calculate match score with penalties
+            match_score, match_reasons = self.intelligent_matcher.calculate_match_score(job_dict)
+            
+            # Apply minimum match score filter from config
+            minimum_score = self.config.get('matching_algorithm', {}).get('minimum_match_score', 0.5)
+            if match_score < minimum_score:
+                logger.debug(f"Job filtered out - score {match_score:.3f} below minimum {minimum_score}: {job.title}")
+                return None
+            
+            job.match_score = match_score
+            
+            # Assess obtainability based on score and penalties
+            if match_score >= 0.85:
+                job.obtainability = 'High'
+            elif match_score >= 0.65:
+                job.obtainability = 'Medium'  
+            else:
+                job.obtainability = 'Low'
+            
+            logger.info(f"✅ Job processed: {job.title} | Score: {match_score:.3f} | {job.obtainability}")
+            
+            return job
+            
+        except Exception as e:
+            logger.error(f"Error processing job with intelligent matcher: {e}")
+            return None
+    
+    async def search_jobs(self, query: str, location: str) -> List[JobListing]:
+        """Override search_jobs to use intelligent matching with proper filtering"""
+        headers = {
+            'X-RapidAPI-Key': self.api_key,
+            'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
+        }
+        
+        search_query = f"{query} {location}" if location != "Remote" else query
+        
+        params = {
+            'query': search_query,
+            'page': '1',
+            'num_pages': '1',
+            'date_posted': 'month',
+            'remote_jobs_only': 'true' if location == "Remote" else 'false',
+            'employment_types': 'FULLTIME,CONTRACTOR'
+        }
+        
+        url = 'https://jsearch.p.rapidapi.com/search'
+        data = await self._rate_limited_request(url, headers=headers, params=params)
+        
+        if not data:
+            return []
+        
+        jobs = []
+        for job_data in data.get('data', [])[:5]:  # Max 5 per search
+            try:
+                job = self._process_job_data(job_data, query, location)
+                if job:  # Filtering already done in _process_job_data based on minimum_match_score
+                    jobs.append(job)
+                    logger.info(f"✅ Job accepted: {job.title} - Score: {job.match_score:.3f} - ${job.salary_max:,}")
+                else:
+                    # Log what was filtered out for debugging
+                    title = str(job_data.get('job_title', 'Unknown') or 'Unknown')
+                    salary = job_data.get('job_max_salary', 0) or 0
+                    logger.info(f"🚫 Job filtered: {title} | ${salary:,} (below minimum score)")
+            except Exception as e:
+                logger.error(f"Error processing job: {e}")
+                continue
+        
+        return jobs
         
     def _check_openai_mcp(self) -> bool:
         """Check if OpenAI integration is available"""

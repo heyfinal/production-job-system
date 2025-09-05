@@ -540,11 +540,13 @@ class IntelligentJobMatcher:
             job.get('benefits', ''),
         ]
         
-        # Handle requirements and benefits as lists or strings
+        # Handle requirements and benefits as lists or strings, with null safety
         text_parts = []
         for part in parts:
-            if isinstance(part, list):
-                text_parts.extend(str(item) for item in part)
+            if part is None:
+                continue
+            elif isinstance(part, list):
+                text_parts.extend(str(item or '') for item in part)
             elif part:
                 text_parts.append(str(part))
         
